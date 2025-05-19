@@ -1,4 +1,17 @@
 os.setlocale("en_US.UTF-8")
+function printTable(tbl, indent)
+    indent = indent or 0
+    for k, v in pairs(tbl) do
+        local formatting = string.rep("  ", indent) .. k .. ": "
+        if type(v) == "table" then
+            print(formatting)
+            printTable(v, indent + 1)
+        else
+            print(formatting .. tostring(v))
+        end
+    end
+end
+
 
 function listToSet(t)
     local set = {}
@@ -526,9 +539,10 @@ local text = io.read("*a")
 if not text then
    text = ""
 end
-print('=========')
+
 local scheme = arg[1] or "cla.cla.IPA"  -- Get first command line argument
 local scheme_parts = {}
+print(scheme)
 for part in string.gmatch(scheme, "[^.]+") do
     table.insert(scheme_parts, part)
 end
@@ -538,6 +552,8 @@ local output = result
 for i=2, #scheme_parts do
     output = output[scheme_parts[i]]
 end
+
+print('=========')
 print(output)
 
 

@@ -34,11 +34,16 @@ The same five dialects are supported:
 
 This requires pandoc, xelatex and Ghostscript, lua>=5.4, python>=3.7
 
-    $ bash scripts/pdf_pron.sh
+```bash
+# Build with Classical Greek pronunciation (default)
+$ bash scripts/pdf_pron.sh
 
-To preserve temporary files for debugging:
+# Build with a specific pronunciation scheme
+$ bash scripts/pdf_pron.sh --scheme koi1
 
-    $ bash scripts/pdf_pron.sh --debug
+# To preserve temporary files for debugging:
+$ bash scripts/pdf_pron.sh --debug
+```
 
 The final PDF will be at docs/lgpsi_pron.pdf
 
@@ -46,7 +51,13 @@ The final PDF will be at docs/lgpsi_pron.pdf
 
 This requires pandoc, lua>=5.4, python>=3.7
 
-    $ bash scripts/html_pron.sh --scheme cla
+```bash
+# Build with Classical Greek pronunciation (default)
+$ bash scripts/html_pron.sh
+
+# Build with a specific pronunciation scheme
+$ bash scripts/html_pron.sh --scheme byz1
+```
 
 The final HTML will be at docs/*.html
 
@@ -54,8 +65,13 @@ The final HTML will be at docs/*.html
 
 This requires pandoc, lua>=5.4, python>=3.7
 
-    
-    $ bash scripts/ebook_pron.sh --scheme cla
+```bash
+# Build with Classical Greek pronunciation (default)
+$ bash scripts/ebook_pron.sh
+
+# Build with a specific pronunciation scheme
+$ bash scripts/ebook_pron.sh --scheme koi2
+```
 
 The final EPUB will be at docs/lgpsi_pron.epub
 
