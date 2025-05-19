@@ -26,23 +26,31 @@ on:
           - byz2
 
 jobs:
+  # Job to determine which schemes to build
+  determine-schemes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [[ "${{ github.event.inputs.scheme }}" == "all" || "${{ github.event.inputs.scheme }}" == "" || "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            echo "matrix={\"scheme\":[\"cla\",\"koi1\",\"koi2\",\"byz1\",\"byz2\"]}" >> $GITHUB_OUTPUT
+          else
+            echo "matrix={\"scheme\":[\"${{ github.event.inputs.scheme }}\"]}" >> $GITHUB_OUTPUT
+          fi
+
+  # Main build job
   build:
+    needs: determine-schemes
     runs-on: ubuntu-latest
 
     strategy:
-      matrix:
-        scheme: ${{ github.event.inputs.scheme == 'all' || github.event.inputs.scheme == '' || github.event_name != 'workflow_dispatch' && fromJSON('["cla", "koi1", "koi2", "byz1", "byz2"]') || fromJSON('["' + github.event.inputs.scheme + '"]') }}
-        include:
-          - scheme: cla
-            scheme_name: "Classical"
-          - scheme: koi1
-            scheme_name: "Early Koine"
-          - scheme: koi2
-            scheme_name: "Late Koine"
-          - scheme: byz1
-            scheme_name: "Middle Byzantine"
-          - scheme: byz2
-            scheme_name: "Late Byzantine"
+      matrix: ${{ fromJson(needs.determine-schemes.outputs.matrix) }}
+      fail-fast: false
+
+    env:
+      SCHEME_NAME: ${{ matrix.scheme == 'cla' && 'Classical' || matrix.scheme == 'koi1' && 'Early Koine' || matrix.scheme == 'koi2' && 'Late Koine' || matrix.scheme == 'byz1' && 'Middle Byzantine' || matrix.scheme == 'byz2' && 'Late Byzantine' }}
 
     steps:
       - name: Checkout repository
@@ -113,7 +121,7 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## Build Summary for ${{ matrix.scheme_name }} (${{ matrix.scheme }}) Pronunciation" >> $GITHUB_STEP_SUMMARY
+          echo "## Build Summary for ${{ env.SCHEME_NAME }} (${{ matrix.scheme }}) Pronunciation" >> $GITHUB_STEP_SUMMARY
           echo "✅ PDF: lgpsi_${{ matrix.scheme }}.pdf" >> $GITHUB_STEP_SUMMARY
           echo "✅ EPUB: lgpsi_${{ matrix.scheme }}.epub" >> $GITHUB_STEP_SUMMARY
           echo "✅ HTML files: Generated in docs/*.html" >> $GITHUB_STEP_SUMMARY
