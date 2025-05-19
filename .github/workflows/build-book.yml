@@ -1,4 +1,4 @@
-name: Build and Publish Book
+name: Build Book
 
 on:
   push:
@@ -15,9 +15,10 @@ on:
       scheme:
         description: 'Pronunciation scheme to use'
         required: false
-        default: 'cla'
+        default: 'all'
         type: choice
         options:
+          - all
           - cla
           - koi1
           - koi2
@@ -27,10 +28,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
-        scheme: [cla, koi1, koi2, byz1, byz2]
+        scheme: ${{ github.event.inputs.scheme == 'all' || github.event.inputs.scheme == '' || github.event_name != 'workflow_dispatch' && fromJSON('["cla", "koi1", "koi2", "byz1", "byz2"]') || fromJSON('["' + github.event.inputs.scheme + '"]') }}
         include:
           - scheme: cla
             scheme_name: "Classical"
@@ -42,249 +43,81 @@ jobs:
             scheme_name: "Middle Byzantine"
           - scheme: byz2
             scheme_name: "Late Byzantine"
-    
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      
+
       - name: Install Lua
         run: |
           sudo apt-get update
-          sudo apt-get install -y lua5.4
-          sudo ln -sf /usr/bin/lua5.4 /usr/bin/lua
-      
+          sudo apt-get install -y lua5.3
+          sudo ln -sf /usr/bin/lua5.3 /usr/bin/lua
+
       - name: Install Pandoc
         run: |
-          wget https://github.com/jgm/pandoc/releases/download/3.1.9/pandoc-3.1.9-1-amd64.deb
-          sudo dpkg -i pandoc-3.1.9-1-amd64.deb
-      
+          sudo apt-get install -y pandoc
+
       - name: Install LaTeX
         run: |
           sudo apt-get install -y texlive-xetex texlive-fonts-recommended texlive-fonts-extra
-      
+
       - name: Install PDF tools
         run: |
           sudo apt-get install -y ghostscript pdftk poppler-utils
-      
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install argparse
-      
+
       - name: Build PDF
         run: |
           bash scripts/pdf_pron.sh --scheme ${{ matrix.scheme }}
           mv docs/lgpsi_pron.pdf docs/lgpsi_${{ matrix.scheme }}.pdf
-      
+
       - name: Build HTML
         run: |
           bash scripts/html_pron.sh --scheme ${{ matrix.scheme }}
-      
+
       - name: Build EPUB
         run: |
           bash scripts/ebook_pron.sh --scheme ${{ matrix.scheme }}
           mv docs/lgpsi_pron.epub docs/lgpsi_${{ matrix.scheme }}.epub
-      
+
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lgpsi-${{ matrix.scheme }}-pdf
           path: docs/lgpsi_${{ matrix.scheme }}.pdf
-      
+          retention-days: 7
+
       - name: Upload EPUB artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lgpsi-${{ matrix.scheme }}-epub
           path: docs/lgpsi_${{ matrix.scheme }}.epub
-      
+          retention-days: 7
+
       - name: Upload HTML artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lgpsi-${{ matrix.scheme }}-html
           path: docs/*.html
+          retention-days: 7
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      
-      - name: Create gh-pages branch if it doesn't exist
+      - name: Summary
         run: |
-          git fetch
-          if ! git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
-            git checkout --orphan gh-pages
-            git rm -rf .
-            echo "# LGPSI Books" > README.md
-            git add README.md
-            git config --global user.email "actions@github.com"
-            git config --global user.name "GitHub Actions"
-            git commit -m "Initial gh-pages commit"
-            git push origin gh-pages
-          fi
-      
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: artifacts
-      
-      - name: Setup gh-pages branch
-        run: |
-          git fetch
-          git checkout gh-pages
-          git pull origin gh-pages
-      
-      - name: Prepare deployment directory
-        run: |
-          mkdir -p books
-          mkdir -p books/pdf
-          mkdir -p books/epub
-          mkdir -p books/html
-      
-      - name: Copy artifacts to deployment directory
-        run: |
-          # Copy PDFs
-          cp artifacts/lgpsi-cla-pdf/lgpsi_cla.pdf books/pdf/
-          cp artifacts/lgpsi-koi1-pdf/lgpsi_koi1.pdf books/pdf/
-          cp artifacts/lgpsi-koi2-pdf/lgpsi_koi2.pdf books/pdf/
-          cp artifacts/lgpsi-byz1-pdf/lgpsi_byz1.pdf books/pdf/
-          cp artifacts/lgpsi-byz2-pdf/lgpsi_byz2.pdf books/pdf/
-          
-          # Copy EPUBs
-          cp artifacts/lgpsi-cla-epub/lgpsi_cla.epub books/epub/
-          cp artifacts/lgpsi-koi1-epub/lgpsi_koi1.epub books/epub/
-          cp artifacts/lgpsi-koi2-epub/lgpsi_koi2.epub books/epub/
-          cp artifacts/lgpsi-byz1-epub/lgpsi_byz1.epub books/epub/
-          cp artifacts/lgpsi-byz2-epub/lgpsi_byz2.epub books/epub/
-          
-          # Copy HTML files for each scheme to its own directory
-          mkdir -p books/html/cla
-          mkdir -p books/html/koi1
-          mkdir -p books/html/koi2
-          mkdir -p books/html/byz1
-          mkdir -p books/html/byz2
-          
-          cp artifacts/lgpsi-cla-html/*.html books/html/cla/
-          cp artifacts/lgpsi-koi1-html/*.html books/html/koi1/
-          cp artifacts/lgpsi-koi2-html/*.html books/html/koi2/
-          cp artifacts/lgpsi-byz1-html/*.html books/html/byz1/
-          cp artifacts/lgpsi-byz2-html/*.html books/html/byz2/
-      
-      - name: Create index.html
-        run: |
-          cat > index.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>LGPSI - Linguae Graecae Per Se Illustrata</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                line-height: 1.6;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-              }
-              h1, h2, h3 {
-                color: #2c3e50;
-              }
-              .book-section {
-                margin-bottom: 30px;
-                padding: 15px;
-                background-color: #f8f9fa;
-                border-radius: 5px;
-              }
-              .download-links {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 10px;
-                margin-top: 10px;
-              }
-              .download-link {
-                display: inline-block;
-                padding: 8px 15px;
-                background-color: #3498db;
-                color: white;
-                text-decoration: none;
-                border-radius: 4px;
-                font-weight: bold;
-              }
-              .download-link:hover {
-                background-color: #2980b9;
-              }
-              .scheme-info {
-                margin-top: 5px;
-                font-style: italic;
-                color: #7f8c8d;
-              }
-            </style>
-          </head>
-          <body>
-            <h1>Linguae Graecae Per Se Illustrata</h1>
-            <p>This page provides access to the LGPSI book in various formats and with different pronunciation schemes.</p>
-            
-            <div class="book-section">
-              <h2>PDF Books</h2>
-              <div class="download-links">
-                <a href="books/pdf/lgpsi_cla.pdf" class="download-link">Classical</a>
-                <a href="books/pdf/lgpsi_koi1.pdf" class="download-link">Early Koine</a>
-                <a href="books/pdf/lgpsi_koi2.pdf" class="download-link">Late Koine</a>
-                <a href="books/pdf/lgpsi_byz1.pdf" class="download-link">Middle Byzantine</a>
-                <a href="books/pdf/lgpsi_byz2.pdf" class="download-link">Late Byzantine</a>
-              </div>
-              <p class="scheme-info">
-                Classical: 5th BCE Attic<br>
-                Early Koine: 1st CE Egyptian<br>
-                Late Koine: 4th CE<br>
-                Middle Byzantine: 10th CE<br>
-                Late Byzantine: 15th CE Constantinopolitan
-              </p>
-            </div>
-            
-            <div class="book-section">
-              <h2>EPUB Books</h2>
-              <div class="download-links">
-                <a href="books/epub/lgpsi_cla.epub" class="download-link">Classical</a>
-                <a href="books/epub/lgpsi_koi1.epub" class="download-link">Early Koine</a>
-                <a href="books/epub/lgpsi_koi2.epub" class="download-link">Late Koine</a>
-                <a href="books/epub/lgpsi_byz1.epub" class="download-link">Middle Byzantine</a>
-                <a href="books/epub/lgpsi_byz2.epub" class="download-link">Late Byzantine</a>
-              </div>
-            </div>
-            
-            <div class="book-section">
-              <h2>HTML Books</h2>
-              <div class="download-links">
-                <a href="books/html/cla/001.html" class="download-link">Classical</a>
-                <a href="books/html/koi1/001.html" class="download-link">Early Koine</a>
-                <a href="books/html/koi2/001.html" class="download-link">Late Koine</a>
-                <a href="books/html/byz1/001.html" class="download-link">Middle Byzantine</a>
-                <a href="books/html/byz2/001.html" class="download-link">Late Byzantine</a>
-              </div>
-            </div>
-            
-            <footer>
-              <p>Last updated: <script>document.write(new Date().toISOString().split('T')[0])</script></p>
-              <p>Built automatically using GitHub Actions.</p>
-            </footer>
-          </body>
-          </html>
-          EOF
-      
-      - name: Commit and push changes
-        run: |
-          git add index.html books/
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-          git commit -m "Update books from latest build"
-          git push origin gh-pages
+          echo "## Build Summary for ${{ matrix.scheme_name }} (${{ matrix.scheme }}) Pronunciation" >> $GITHUB_STEP_SUMMARY
+          echo "✅ PDF: lgpsi_${{ matrix.scheme }}.pdf" >> $GITHUB_STEP_SUMMARY
+          echo "✅ EPUB: lgpsi_${{ matrix.scheme }}.epub" >> $GITHUB_STEP_SUMMARY
+          echo "✅ HTML files: Generated in docs/*.html" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifacts from the GitHub Actions run to access these files." >> $GITHUB_STEP_SUMMARY
+
+
