@@ -74,7 +74,7 @@ cat > "$TEX_FILE" << EOF
 ]
 
 % Include Noto Sans TTF with the correct path
-\\setsansfont{NotoSans-Regular.ttf}[
+\\setsansfont{NotoSansDisplay_Condensed-Regular.ttf}[
   Path = ../../docs/
 ]
 
