@@ -112,11 +112,23 @@ jobs:
           path: docs/lgpsi_${{ matrix.scheme }}.epub
           retention-days: 7
 
+      - name: Prepare HTML artifacts
+        run: |
+          # Create a directory for HTML files with CSS and fonts
+          mkdir -p html_output
+          # Copy HTML files
+          cp docs/*.html html_output/
+          # Copy CSS file
+          cp docs/style_pron.css html_output/
+          # Copy font files
+          cp docs/*.ttf html_output/
+          echo "HTML files prepared with CSS and fonts"
+
       - name: Upload HTML artifacts
         uses: actions/upload-artifact@v4
         with:
           name: lgpsi-${{ matrix.scheme }}-html
-          path: docs/*.html
+          path: html_output/
           retention-days: 7
 
       - name: Summary
@@ -124,8 +136,13 @@ jobs:
           echo "## Build Summary for ${{ env.SCHEME_NAME }} (${{ matrix.scheme }}) Pronunciation" >> $GITHUB_STEP_SUMMARY
           echo "✅ PDF: lgpsi_${{ matrix.scheme }}.pdf" >> $GITHUB_STEP_SUMMARY
           echo "✅ EPUB: lgpsi_${{ matrix.scheme }}.epub" >> $GITHUB_STEP_SUMMARY
-          echo "✅ HTML files: Generated in docs/*.html" >> $GITHUB_STEP_SUMMARY
+          echo "✅ HTML files: Generated with CSS and font files" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Download the artifacts from the GitHub Actions run to access these files." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note for HTML files**: The HTML artifact includes:" >> $GITHUB_STEP_SUMMARY
+          echo "- HTML files with pronunciation" >> $GITHUB_STEP_SUMMARY
+          echo "- style_pron.css stylesheet" >> $GITHUB_STEP_SUMMARY
+          echo "- Required font files (NotoSansDisplay_Condensed-Regular.ttf and SBLGreek.ttf)" >> $GITHUB_STEP_SUMMARY
 
 

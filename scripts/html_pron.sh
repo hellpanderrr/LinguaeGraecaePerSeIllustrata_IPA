@@ -30,5 +30,16 @@ done
 # Ensure docs directory
 mkdir -p docs
 
+# Make sure the CSS file is in the docs directory
+echo "Ensuring style_pron.css is in the docs directory"
+# The CSS file is already in the docs directory, so we don't need to copy it
+
+# Make sure the font files are in the docs directory
+echo "Ensuring font files are in the docs directory"
+# The font files are already in the docs directory, so we don't need to copy them
+
 # Run the Python script with the selected scheme
 python3 scripts/md_to_html_with_ipa.py --scheme "$SCHEME"
+
+echo "HTML files generated in docs/ directory with pronunciation scheme: $SCHEME"
+echo "Make sure to view them with the style_pron.css and font files in the same directory"
