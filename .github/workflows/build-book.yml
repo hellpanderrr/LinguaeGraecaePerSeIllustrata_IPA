@@ -1,15 +1,7 @@
 name: Build Book
 
 on:
-  push:
-    branches: [ main, master ]
-    paths:
-      - 'src/**'
-      - 'scripts/**'
-      - 'templates/**'
-      - '.github/workflows/build-book.yml'
-  pull_request:
-    branches: [ main, master ]
+  # Only run manually via workflow_dispatch
   workflow_dispatch:
     inputs:
       scheme:
@@ -27,7 +19,7 @@ on:
       create_release:
         description: 'Create a GitHub Release with the build artifacts'
         required: false
-        default: false
+        default: true
         type: boolean
 
 jobs:
@@ -152,7 +144,7 @@ jobs:
 
       # Create a zip file of the HTML files for the release
       - name: Create HTML zip archive
-        if: github.event.inputs.create_release == 'true' || (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        if: github.event.inputs.create_release == 'true'
         run: |
           cd html_output
           zip -r ../lgpsi_${{ matrix.scheme }}_html.zip .
@@ -160,7 +152,7 @@ jobs:
 
       # Upload the zip file as an artifact for the release job
       - name: Upload release artifacts
-        if: github.event.inputs.create_release == 'true' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'))
+        if: github.event.inputs.create_release == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: release-artifacts-${{ matrix.scheme }}
@@ -173,7 +165,7 @@ jobs:
   # Create a GitHub Release with all the build artifacts
   create-release:
     needs: build
-    if: github.event.inputs.create_release == 'true' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'))
+    if: github.event.inputs.create_release == 'true'
     runs-on: ubuntu-latest
 
     steps:

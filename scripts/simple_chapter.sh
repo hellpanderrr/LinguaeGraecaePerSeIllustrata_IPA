@@ -75,7 +75,7 @@ cat > "$TEX_FILE" << EOF
 
 % Include Noto Sans TTF with the correct path
 \\setsansfont{NotoSansDisplay_Condensed-Regular.ttf}[
-  Path = ../../docs/
+  Path = ../../docs/ 
 ]
 
 % Define pronunciation command for regular text
